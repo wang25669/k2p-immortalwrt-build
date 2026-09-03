@@ -62,21 +62,28 @@ jobs:
           EOCONFIG
 
           make defconfig
-          # 强制关掉defconfig偷加的全家桶，但保留fullcone/nat
-          ./scripts/config --disable CONFIG_PACKAGE_luci-app-opkg
-          ./scripts/config --disable CONFIG_PACKAGE_luci-app-attendedsysupgrade
-          ./scripts/config --disable CONFIG_PACKAGE_attendedsysupgrade-common
-          ./scripts/config --disable CONFIG_PACKAGE_luci-i18n-opkg-zh-cn
-          ./scripts/config --disable CONFIG_PACKAGE_luci-i18n-firewall-zh-cn
-          ./scripts/config --disable CONFIG_PACKAGE_geoview
-          ./scripts/config --disable CONFIG_PACKAGE_v2ray-geoip
-          ./scripts/config --disable CONFIG_PACKAGE_v2ray-geosite
-          ./scripts/config --disable CONFIG_PACKAGE_luci-theme-argon
-          ./scripts/config --disable CONFIG_PACKAGE_dnsmasq-full
-          ./scripts/config --disable CONFIG_PACKAGE_wpad-openssl
+          # 去掉defconfig偷加的全家桶（保留fullcone）
+          sed -i '/CONFIG_PACKAGE_luci-app-opkg/d' .config
+          echo "# CONFIG_PACKAGE_luci-app-opkg is not set" >> .config
+          sed -i '/CONFIG_PACKAGE_luci-app-attendedsysupgrade/d' .config
+          echo "# CONFIG_PACKAGE_luci-app-attendedsysupgrade is not set" >> .config
+          sed -i '/CONFIG_PACKAGE_attendedsysupgrade-common/d' .config
+          echo "# CONFIG_PACKAGE_attendedsysupgrade-common is not set" >> .config
+          sed -i '/CONFIG_PACKAGE_geoview/d' .config
+          echo "# CONFIG_PACKAGE_geoview is not set" >> .config
+          sed -i '/CONFIG_PACKAGE_v2ray-geoip/d' .config
+          echo "# CONFIG_PACKAGE_v2ray-geoip is not set" >> .config
+          sed -i '/CONFIG_PACKAGE_v2ray-geosite/d' .config
+          echo "# CONFIG_PACKAGE_v2ray-geosite is not set" >> .config
+          sed -i '/CONFIG_PACKAGE_luci-theme-argon/d' .config
+          echo "# CONFIG_PACKAGE_luci-theme-argon is not set" >> .config
+          sed -i '/CONFIG_PACKAGE_dnsmasq-full/d' .config
+          echo "# CONFIG_PACKAGE_dnsmasq-full is not set" >> .config
+          sed -i '/CONFIG_PACKAGE_wpad-openssl/d' .config
+          echo "# CONFIG_PACKAGE_wpad-openssl is not set" >> .config
           make defconfig
           echo "=== defconfig ==="
-          grep -E "phicomm_k2p|sing-box|homeproxy|ppp|ipv6|upnp|wpad|dnsmasq|fullcone" .config | head -40
+          grep -E "phicomm_k2p|sing-box|homeproxy|fullcone|wpad|dnsmasq" .config | head -30
           make -j$(nproc) || make -j1 V=s
 
       - name: Collect artifact
