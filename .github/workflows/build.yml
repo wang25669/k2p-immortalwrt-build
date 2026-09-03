@@ -19,7 +19,7 @@ jobs:
           sudo apt-get clean
           df -h
 
-      - name: Build ImmortalWrt K2P
+      - name: Build ImmortalWrt K2P ultra slim
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential clang flex bison g++ gawk gcc-multilib g++-multilib gettext git libncurses-dev libssl-dev python3-distutils rsync unzip zlib1g-dev file wget qemu-utils
@@ -30,42 +30,60 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-          cat > .config << 'EOF'
+          cat > .config << 'EOCONFIG'
           CONFIG_TARGET_ramips=y
           CONFIG_TARGET_ramips_mt7621=y
           CONFIG_TARGET_ramips_mt7621_DEVICE_phicomm_k2p=y
-          CONFIG_PACKAGE_dnsmasq-full=y
+          # 基础
+          CONFIG_PACKAGE_dnsmasq=y
+          # CONFIG_PACKAGE_dnsmasq-full is not set
           CONFIG_PACKAGE_ip6tables=y
           CONFIG_PACKAGE_ip6tables-mod-nat=y
           CONFIG_PACKAGE_kmod-ipt-nat6=y
+          # LuCI 仅保留bootstrap，不装argon省300K
           CONFIG_PACKAGE_luci=y
-          CONFIG_PACKAGE_luci-theme-argon=y
+          # CONFIG_PACKAGE_luci-theme-argon is not set
+          CONFIG_PACKAGE_luci-theme-bootstrap=y
           CONFIG_PACKAGE_luci-i18n-base-zh-cn=y
+          # 拨号 保留
           CONFIG_PACKAGE_ppp=y
           CONFIG_PACKAGE_ppp-mod-pppoe=y
           CONFIG_PACKAGE_kmod-pppoe=y
           CONFIG_PACKAGE_kmod-pppox=y
           CONFIG_PACKAGE_kmod-ppp=y
+          # IPv6 保留
           CONFIG_PACKAGE_odhcp6c=y
           CONFIG_PACKAGE_odhcpd-ipv6only=y
           CONFIG_PACKAGE_luci-proto-ipv6=y
           CONFIG_PACKAGE_ipv6helper=y
           CONFIG_PACKAGE_kmod-ipv6=y
+          # UPnP 保留
           CONFIG_PACKAGE_miniupnpd=y
           CONFIG_PACKAGE_luci-app-upnp=y
           CONFIG_PACKAGE_luci-i18n-upnp-zh-cn=y
+          # 翻墙 仅homeproxy+sing-box，地理库不塞固件(联网后下载)
           CONFIG_PACKAGE_sing-box=y
           CONFIG_PACKAGE_luci-app-homeproxy=y
           CONFIG_PACKAGE_chinadns-ng=y
           CONFIG_PACKAGE_tcping=y
-          CONFIG_PACKAGE_geoview=y
-          CONFIG_PACKAGE_v2ray-geoip=y
-          CONFIG_PACKAGE_v2ray-geosite=y
-          EOF
+          # CONFIG_PACKAGE_geoview is not set
+          # CONFIG_PACKAGE_v2ray-geoip is not set
+          # CONFIG_PACKAGE_v2ray-geosite is not set
+          # 无线 基础版省1M
+          # CONFIG_PACKAGE_wpad-openssl is not set
+          CONFIG_PACKAGE_wpad-basic-wolfssl=y
+          # 去掉大而无用
+          # CONFIG_PACKAGE_luci-app-opkg is not set
+          # CONFIG_PACKAGE_kmod-usb-core is not set
+          # CONFIG_PACKAGE_kmod-usb-ohci is not set
+          # CONFIG_PACKAGE_kmod-usb2 is not set
+          # CONFIG_PACKAGE_kmod-usb3 is not set
+          EOCONFIG
 
           make defconfig
           echo "=== defconfig ==="
-          grep -E "phicomm_k2p|sing-box|homeproxy|ppp|ipv6|upnp" .config | head -30
+          grep -E "phicomm_k2p|sing-box|homeproxy|ppp|ipv6|upnp|wpad|dnsmasq|geoview|v2ray" .config | head -40
+          echo "=== size check ==="
           make -j$(nproc) || make -j1 V=s
 
       - name: Collect artifact
@@ -73,10 +91,11 @@ jobs:
         run: |
           cd immortalwrt
           mkdir -p /tmp/firmware
-          cp -f bin/targets/ramips/mt7621/*.bin /tmp/firmware/ 2>/dev/null || true
-          cp -f bin/targets/ramips/mt7621/*.manifest /tmp/firmware/ 2>/dev/null || true
           ls -lh bin/targets/ramips/mt7621/ 2>&1 | head -40
+          cp -f bin/targets/ramips/mt7621/*squashfs-sysupgrade.bin /tmp/firmware/ 2>/dev/null || echo "NO SYSUPGRADE - TOO BIG"
+          cp -f bin/targets/ramips/mt7621/*.manifest /tmp/firmware/ 2>/dev/null || true
           ls -lh /tmp/firmware/ 2>&1 | head -20
+          ls -lh bin/targets/ramips/mt7621/*.bin 2>&1 | head -20
 
       - name: Upload firmware
         if: success()
